@@ -96,7 +96,8 @@ public class MortgageApp {
             System.out.println("2. Delete Filter");
             System.out.println("3. View Matching Mortgages");
             System.out.println("4. Calculate and Package Mortgages");
-            System.out.println("5. Exit");
+            System.out.println("5. Add New Mortgage");
+            System.out.println("6. Exit");
 
             System.out.print("Enter your choice: ");
             int choice = scanner.nextInt();
@@ -108,7 +109,8 @@ public class MortgageApp {
                 case 2 -> deleteFilter();
                 case 3 -> viewMatchingMortgages();
                 case 4 -> calculateAndPackage();
-                case 5 -> running = false;
+                case 5 -> addMortgage();
+                case 6 -> running = false;
                 default -> System.out.println("Invalid choice. Please try again.");
             }
         }
@@ -606,6 +608,64 @@ public class MortgageApp {
             }
         } else {
             System.out.println("Rate rejected. Returning to the main menu.");
+        }
+    }
+
+    private void addMortgage() {
+        System.out.println("\n--- Add New Mortgage ---");
+    
+        try (Connection conn = DatabaseCon.connect()) {
+            // Step 1: Input income
+            System.out.print("Enter Applicant Income (in thousands): ");
+            double income = Double.parseDouble(scanner.nextLine());
+    
+            // Step 2: Input loan amount
+            System.out.print("Enter Loan Amount (in thousands): ");
+            double loanAmount = Double.parseDouble(scanner.nextLine());
+    
+            // Step 3: Input MSAMD
+            System.out.print("Enter MSAMD (Metropolitan Statistical Area/Metropolitan Division): ");
+            int msamd = Integer.parseInt(scanner.nextLine());
+    
+            // Step 4: Select Applicant Sex
+            System.out.print("Enter Applicant Sex (1 = Male, 2 = Female, 3 = Information Not Provided, 4 = Not Applicable): ");
+            int applicantSex = Integer.parseInt(scanner.nextLine());
+    
+            // Step 5: Select Loan Type
+            System.out.print("Enter Loan Type (1 = Conventional, 2 = FHA, 3 = VA, 4 = USDA-RHS): ");
+            int loanType = Integer.parseInt(scanner.nextLine());
+    
+            // Step 6: Select Ethnicity
+            System.out.print("Enter Applicant Ethnicity (1 = Hispanic or Latino, 2 = Not Hispanic or Latino, 3 = Information Not Provided, 4 = Not Applicable): ");
+            int ethnicity = Integer.parseInt(scanner.nextLine());
+    
+            // Insert the mortgage into the database with default values for all required fields
+            String insertQuery = "INSERT INTO application (as_of_year, respondent_id, agency_code, loan_type, property_type, loan_purpose, " +
+                                 "loan_amount_000s, preapproval, action_taken, msamd, location_id, applicant_ethnicity, co_applicant_ethnicity, " +
+                                 "applicant_sex, co_applicant_sex, applicant_income_000s, purchaser_type, denial_reason_1, denial_reason_2, " +
+                                 "denial_reason_3, rate_spread, hoepa_status, lien_status, edit_status, sequence_number, application_date_indicator) " +
+                                 "VALUES (2024, 'UNKNOWN', 1, ?, 1, 1, ?, 0, 1, ?, " +
+                                 "(SELECT location_id FROM location WHERE msamd = ? LIMIT 1), ?, 0, ?, 0, ?, 0, 0, 0, 0, 0.0, 0, 0, 0, DEFAULT, 0)";
+    
+            try (PreparedStatement stmt = conn.prepareStatement(insertQuery)) {
+                stmt.setInt(1, loanType);
+                stmt.setDouble(2, loanAmount);
+                stmt.setInt(3, msamd);
+                stmt.setInt(4, msamd);
+                stmt.setInt(5, ethnicity);
+                stmt.setInt(6, applicantSex);
+                stmt.setDouble(7, income);
+    
+                int rowsInserted = stmt.executeUpdate();
+                if (rowsInserted > 0) {
+                    System.out.println("New mortgage successfully added!");
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error adding new mortgage.");
+            e.printStackTrace();
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid input. Please enter numbers where required.");
         }
     }
 }
